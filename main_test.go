@@ -15,31 +15,41 @@ func ExampleDayN() {
 	fmt.Println("part 2:", part2(input2))
 
 	// Output:
-	// part 1: 0
-	// part 1: 0
+	// part 1: 2
+	// part 1: 686
 	//
 	// part 2: 0
 	// part 2: 0
 }
 
 func part1(input string) int {
+	var total int
 	scanner := bufio.NewScanner(strings.NewReader(input))
 	for scanner.Scan() {
 		text := scanner.Text()
 		_ = text
 	}
 
-	return 0
+	return total
 }
 
 func part2(input string) int {
+	var total int
 	scanner := bufio.NewScanner(strings.NewReader(input))
 	for scanner.Scan() {
 		text := scanner.Text()
 		_ = text
 	}
 
-	return 0
+	return total
+}
+
+func abs(n int) int {
+	if n < 0 {
+		return -n
+	}
+
+	return n
 }
 
 func toInt(s string) int {
