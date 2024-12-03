@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func ExampleDayN() {
+func ExampleDay2() {
 	fmt.Println("part 1:", part1(input1))
 	fmt.Println("part 1:", part1(input2))
 	fmt.Println()
