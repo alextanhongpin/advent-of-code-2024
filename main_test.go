@@ -15,8 +15,8 @@ func ExampleDayN() {
 	fmt.Println("part 2:", part2(input2))
 
 	// Output:
-	// part 1: 2
-	// part 1: 686
+	// part 1: 0
+	// part 1: 0
 	//
 	// part 2: 0
 	// part 2: 0
