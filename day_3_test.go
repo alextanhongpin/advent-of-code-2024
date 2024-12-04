@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"go-aoc-2025/utils"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -31,7 +31,7 @@ func usecase(text string) int {
 	re := regexp.MustCompile(`mul\((\d+),(\d+)\)`)
 	matches := re.FindAllStringSubmatch(text, -1)
 	for _, match := range matches {
-		total += toInt(match[1]) * toInt(match[2])
+		total += utils.ToInt(match[1]) * utils.ToInt(match[2])
 	}
 	return total
 }
@@ -47,7 +47,7 @@ func usecase2(text string) int {
 			continue
 		}
 		if mul {
-			total += toInt(match[1]) * toInt(match[2])
+			total += utils.ToInt(match[1]) * utils.ToInt(match[2])
 		}
 	}
 	return total
@@ -55,15 +55,6 @@ func usecase2(text string) int {
 
 func part2(input string) int {
 	return usecase2(input)
-}
-
-func toInt(s string) int {
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		panic(err)
-	}
-
-	return n
 }
 
 var input1 = `xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))`

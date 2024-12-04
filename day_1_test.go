@@ -4,8 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
+
+	"go-aoc-2025/utils"
 )
 
 func ExampleDay1() {
@@ -29,8 +30,8 @@ func part1(input string) int {
 	for scanner.Scan() {
 		text := scanner.Text()
 		parts := strings.Fields(text)
-		left = append(left, toInt(parts[0]))
-		right = append(right, toInt(parts[1]))
+		left = append(left, utils.ToInt(parts[0]))
+		right = append(right, utils.ToInt(parts[1]))
 	}
 
 	sort.Ints(left)
@@ -54,8 +55,8 @@ func part2(input string) int {
 	for scanner.Scan() {
 		text := scanner.Text()
 		parts := strings.Fields(text)
-		left = append(left, toInt(parts[0]))
-		right[toInt(parts[1])]++
+		left = append(left, utils.ToInt(parts[0]))
+		right[utils.ToInt(parts[1])]++
 	}
 
 	var total int
@@ -64,15 +65,6 @@ func part2(input string) int {
 	}
 
 	return total
-}
-
-func toInt(s string) int {
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		panic(err)
-	}
-
-	return n
 }
 
 var input1 = `3   4

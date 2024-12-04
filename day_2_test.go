@@ -3,8 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"strconv"
 	"strings"
+
+	"go-aoc-2025/utils"
 )
 
 func ExampleDay2() {
@@ -30,7 +31,7 @@ func part1(input string) int {
 		strs := strings.Fields(text)
 		nums := make([]int, len(strs))
 		for i, s := range strs {
-			nums[i] = toInt(s)
+			nums[i] = utils.ToInt(s)
 		}
 		if isValid(nums) {
 			total++
@@ -54,7 +55,7 @@ func isValid(nums []int) bool {
 			neg++
 		}
 
-		if abs(d) < 1 || abs(d) > 3 {
+		if utils.Abs(d) < 1 || utils.Abs(d) > 3 {
 			valid = false
 		}
 	}
@@ -69,7 +70,7 @@ func part2(input string) int {
 		strs := strings.Fields(text)
 		nums := make([]int, len(strs))
 		for i, s := range strs {
-			nums[i] = toInt(s)
+			nums[i] = utils.ToInt(s)
 		}
 
 		for i := range len(nums) {
@@ -90,23 +91,6 @@ func part2(input string) int {
 	}
 
 	return total
-}
-
-func abs(n int) int {
-	if n < 0 {
-		return -n
-	}
-
-	return n
-}
-
-func toInt(s string) int {
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		panic(err)
-	}
-
-	return n
 }
 
 var input1 = `7 6 4 2 1
