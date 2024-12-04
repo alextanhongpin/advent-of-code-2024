@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"iter"
-	"regexp"
-	"slices"
+	"go-aoc-2025/utils"
 	"strings"
 )
 
@@ -17,28 +14,36 @@ func ExampleDayN() {
 	fmt.Println("part 2:", part2(inputs[1]))
 
 	// Output:
-	// part 1: 0
-	// part 1: 0
+	// part 1: 18
+	// part 1: 2358
 	//
-	// part 2: 0
-	// part 2: 0
+	// part 2: 9
+	// part 2: 1737
 }
 
 func part2(input string) int {
 	var m [][]string
 	var rows, cols int
-	for _, row := range scan(input) {
+	for _, row := range utils.Scan(input) {
 		m = append(m, strings.Split(row, ""))
 		rows++
 		cols = len(row)
+	}
+
+	var isMS func(a, b string) bool
+	isMS = func(a, b string) bool {
+		if b < a {
+			return isMS(b, a)
+		}
+		return a == "M" && b == "S"
 	}
 
 	var total int
 	for i := 1; i < rows-1; i++ {
 		for j := 1; j < cols-1; j++ {
 			if m[i][j] == "A" {
-				a := isMAS(m[i][j] + m[i-1][j-1] + m[i+1][j+1])
-				b := isMAS(m[i][j] + m[i-1][j+1] + m[i+1][j-1])
+				a := isMS(m[i-1][j-1], m[i+1][j+1])
+				b := isMS(m[i-1][j+1], m[i+1][j-1])
 				if a && b {
 					total++
 				}
@@ -49,101 +54,62 @@ func part2(input string) int {
 	return total
 }
 
-func isMAS(str string) bool {
-	chars := strings.Split(str, "")
-	slices.Sort(chars)
-	return strings.Join(chars, "") == "AMS"
-}
-
+// Find all "X", then check if the surrounding characters form "MAS".
 func part1(input string) int {
-	m := make([][]string, 0)
-	var all []string
-	var rows int
-	var cols int
-	for _, row := range scan(input) {
+	var m [][]string
+	var rows, cols int
+	for _, row := range utils.Scan(input) {
+		m = append(m, strings.Split(row, ""))
 		rows++
 		cols = len(row)
-
-		m = append(m, strings.Split(row, ""))
-		all = append(all, row)
-		all = append(all, reverse(row))
 	}
 
-	for i := 0; i < cols; i++ {
-		var col string
-		for j := 0; j < rows; j++ {
-			col += m[j][i]
-		}
-		all = append(all, col)
-		all = append(all, reverse(col))
+	isMAS := func(str string) bool {
+		return str == "MAS"
 	}
 
-	// Diagonals.
+	var total int
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
-			var ok bool
-			if i == 0 || i == rows-1 || j == 0 || j == cols-1 {
-				ok = true
-			}
-			if !ok {
+			if m[i][j] != "X" {
 				continue
 			}
-			row := i
-			col := j
-			var diag string
-			for row < rows && col < cols {
-				diag += m[row][col]
-				row++
-				col++
+
+			// Up
+			if j-3 >= 0 && isMAS(m[i][j-1]+m[i][j-2]+m[i][j-3]) {
+				total++
 			}
-			row = i
-			col = j
-
-			all = append(all, diag)
-			all = append(all, reverse(diag))
-
-			row = i
-			col = j
-			diag = ""
-			for row > -1 && row < rows && col > -1 && col < cols {
-				diag += m[row][col]
-				row--
-				col++
+			// Down
+			if j+3 < cols && isMAS(m[i][j+1]+m[i][j+2]+m[i][j+3]) {
+				total++
 			}
-
-			all = append(all, diag)
-			all = append(all, reverse(diag))
+			// Left
+			if i-3 >= 0 && isMAS(m[i-1][j]+m[i-2][j]+m[i-3][j]) {
+				total++
+			}
+			// Right
+			if i+3 < rows && isMAS(m[i+1][j]+m[i+2][j]+m[i+3][j]) {
+				total++
+			}
+			// Diagonal up-left
+			if i-3 >= 0 && j-3 >= 0 && isMAS(m[i-1][j-1]+m[i-2][j-2]+m[i-3][j-3]) {
+				total++
+			}
+			// Diagonal up-right
+			if i-3 >= 0 && j+3 < cols && isMAS(m[i-1][j+1]+m[i-2][j+2]+m[i-3][j+3]) {
+				total++
+			}
+			// Diagonal down-left
+			if i+3 < rows && j-3 >= 0 && isMAS(m[i+1][j-1]+m[i+2][j-2]+m[i+3][j-3]) {
+				total++
+			}
+			// Diagonal down-right
+			if i+3 < rows && j+3 < cols && isMAS(m[i+1][j+1]+m[i+2][j+2]+m[i+3][j+3]) {
+				total++
+			}
 		}
 	}
-
-	re := regexp.MustCompile(`XMAS`)
-	var total int
-	for _, row := range all {
-		matches := re.FindAllStringSubmatch(row, -1)
-		total += len(matches)
-	}
-
 	return total
-}
-
-func reverse(s string) string {
-	rs := []rune(s)
-	slices.Reverse(rs)
-	return string(rs)
-}
-
-func scan(input string) iter.Seq2[int, string] {
-	return func(yield func(int, string) bool) {
-		var i int
-
-		scanner := bufio.NewScanner(strings.NewReader(input))
-		for scanner.Scan() {
-			if !yield(i, scanner.Text()) {
-				break
-			}
-			i++
-		}
-	}
 }
 
 var inputs = []string{
