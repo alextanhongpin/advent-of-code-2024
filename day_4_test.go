@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"go-aoc-2025/utils"
-	"strings"
 )
 
 func ExampleDayN() {
@@ -21,32 +20,43 @@ func ExampleDayN() {
 	// part 2: 1737
 }
 
-func part2(input string) int {
-	var m [][]string
-	var rows, cols int
-	for _, row := range utils.Scan(input) {
-		m = append(m, strings.Split(row, ""))
-		rows++
-		cols = len(row)
+type Point struct {
+	X, Y int
+}
+
+// Find all "X", then check if the surrounding characters form "MAS".
+func part1(input string) int {
+	grid := make(map[Point]rune)
+	var xs []Point
+	for x, row := range utils.Scan(input) {
+		for y, r := range []rune(row) {
+			grid[Point{x, y}] = r
+			if r == 'X' {
+				xs = append(xs, Point{x, y})
+			}
+		}
 	}
 
-	var isMS func(a, b string) bool
-	isMS = func(a, b string) bool {
-		if b < a {
-			return isMS(b, a)
-		}
-		return a == "M" && b == "S"
+	points := [][]Point{
+		{{1, 0}, {2, 0}, {3, 0}},       // Right
+		{{-1, 0}, {-2, 0}, {-3, 0}},    // Left
+		{{0, -1}, {0, -2}, {0, -3}},    // Up
+		{{0, 1}, {0, 2}, {0, 3}},       // Down
+		{{1, -1}, {2, -2}, {3, -3}},    // Diagonal up-right
+		{{-1, -1}, {-2, -2}, {-3, -3}}, // Diagonal up-left
+		{{1, 1}, {2, 2}, {3, 3}},       // Diagonal down-right
+		{{-1, 1}, {-2, 2}, {-3, 3}},    // Diagonal down-left
 	}
 
 	var total int
-	for i := 1; i < rows-1; i++ {
-		for j := 1; j < cols-1; j++ {
-			if m[i][j] == "A" {
-				a := isMS(m[i-1][j-1], m[i+1][j+1])
-				b := isMS(m[i-1][j+1], m[i+1][j-1])
-				if a && b {
-					total++
-				}
+	for _, p := range xs {
+		for _, pt := range points {
+			var str string
+			for _, d := range pt {
+				str += string(grid[Point{p.X + d.X, p.Y + d.Y}])
+			}
+			if str == "MAS" {
+				total++
 			}
 		}
 	}
@@ -54,61 +64,41 @@ func part2(input string) int {
 	return total
 }
 
-// Find all "X", then check if the surrounding characters form "MAS".
-func part1(input string) int {
-	var m [][]string
-	var rows, cols int
-	for _, row := range utils.Scan(input) {
-		m = append(m, strings.Split(row, ""))
-		rows++
-		cols = len(row)
-	}
-
-	isMAS := func(str string) bool {
-		return str == "MAS"
-	}
-
-	var total int
-	for i := 0; i < rows; i++ {
-		for j := 0; j < cols; j++ {
-			if m[i][j] != "X" {
-				continue
-			}
-
-			// Up
-			if j-3 >= 0 && isMAS(m[i][j-1]+m[i][j-2]+m[i][j-3]) {
-				total++
-			}
-			// Down
-			if j+3 < cols && isMAS(m[i][j+1]+m[i][j+2]+m[i][j+3]) {
-				total++
-			}
-			// Left
-			if i-3 >= 0 && isMAS(m[i-1][j]+m[i-2][j]+m[i-3][j]) {
-				total++
-			}
-			// Right
-			if i+3 < rows && isMAS(m[i+1][j]+m[i+2][j]+m[i+3][j]) {
-				total++
-			}
-			// Diagonal up-left
-			if i-3 >= 0 && j-3 >= 0 && isMAS(m[i-1][j-1]+m[i-2][j-2]+m[i-3][j-3]) {
-				total++
-			}
-			// Diagonal up-right
-			if i-3 >= 0 && j+3 < cols && isMAS(m[i-1][j+1]+m[i-2][j+2]+m[i-3][j+3]) {
-				total++
-			}
-			// Diagonal down-left
-			if i+3 < rows && j-3 >= 0 && isMAS(m[i+1][j-1]+m[i+2][j-2]+m[i+3][j-3]) {
-				total++
-			}
-			// Diagonal down-right
-			if i+3 < rows && j+3 < cols && isMAS(m[i+1][j+1]+m[i+2][j+2]+m[i+3][j+3]) {
-				total++
+func part2(input string) int {
+	grid := make(map[Point]rune)
+	var xs []Point
+	for x, row := range utils.Scan(input) {
+		for y, r := range []rune(row) {
+			grid[Point{x, y}] = r
+			if r == 'A' {
+				xs = append(xs, Point{x, y})
 			}
 		}
 	}
+
+	points := [][]Point{
+		{{-1, 1}, {1, -1}}, // Diagonal up-right
+		{{-1, -1}, {1, 1}}, // Diagonal down-right
+	}
+
+	var total int
+	for _, p := range xs {
+		x, y := p.X, p.Y
+		ok := true
+		for _, pt := range points {
+			var str string
+			for _, d := range pt {
+				str += string(grid[Point{x + d.X, y + d.Y}])
+			}
+			if !(str == "SM" || str == "MS") {
+				ok = false
+			}
+		}
+		if ok {
+			total++
+		}
+	}
+
 	return total
 }
 
