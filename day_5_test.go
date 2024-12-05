@@ -8,11 +8,13 @@ import (
 )
 
 func ExampleDayN() {
-	fmt.Println("part 1:", part1(inputs[0]))
-	fmt.Println("part 1:", part1(inputs[1]))
+	a, b := solve(inputs[0])
+	c, d := solve(inputs[1])
+	fmt.Println("part 1:", a)
+	fmt.Println("part 1:", c)
 	fmt.Println()
-	fmt.Println("part 2:", part2(inputs[0]))
-	fmt.Println("part 2:", part2(inputs[1]))
+	fmt.Println("part 2:", b)
+	fmt.Println("part 2:", d)
 
 	// Output:
 	// part 1: 143
@@ -22,9 +24,9 @@ func ExampleDayN() {
 	// part 2: 5799
 }
 
-func part1(input string) int {
+func solve(input string) (int, int) {
 	rules := make(map[string]bool)
-	var patterns []string
+	var patterns [][]string
 	var isPattern bool
 	for _, row := range strings.Split(input, "\n") {
 		if row == "" {
@@ -32,95 +34,30 @@ func part1(input string) int {
 			continue
 		}
 		if isPattern {
-			patterns = append(patterns, row)
+			patterns = append(patterns, strings.Split(row, ","))
 		} else {
 			rules[row] = true
 		}
 	}
 
-	var total int
+	var part1, part2 int
 	for _, p := range patterns {
-		ord := strings.Split(p, ",")
-		m := make(map[string]int)
-		for i, o := range ord {
-			m[o] = i
-		}
-		valid := true
-		for r := range rules {
-			a, b, ok := strings.Cut(r, "|")
-			if !ok {
-				panic("invalid rule")
+		c := slices.Clone(p)
+		slices.SortFunc(p, func(a, b string) int {
+			if rules[a+"|"+b] {
+				return -1
 			}
-			i, ok := m[a]
-			if ok {
-				j, ok := m[b]
-				if ok {
-					if i > j {
-						valid = false
-					}
-				}
-			}
-		}
-		if valid {
-			total += utils.ToInt(ord[len(ord)/2])
-		}
-	}
-	return total
-}
 
-func part2(input string) int {
-	rules := make(map[string]bool)
-	var patterns []string
-	var isPattern bool
-	for _, row := range strings.Split(input, "\n") {
-		if row == "" {
-			isPattern = true
-			continue
-		}
-		if isPattern {
-			patterns = append(patterns, row)
+			return 0
+		})
+		if slices.Equal(p, c) {
+			part1 += utils.ToInt(p[len(p)/2])
 		} else {
-			rules[row] = true
+			part2 += utils.ToInt(p[len(p)/2])
 		}
 	}
 
-	var total int
-	for _, p := range patterns {
-		ord := strings.Split(p, ",")
-		m := make(map[string]int)
-		for i, o := range ord {
-			m[o] = i
-		}
-		valid := true
-		for r := range rules {
-			a, b, ok := strings.Cut(r, "|")
-			if !ok {
-				panic("invalid rule")
-			}
-			i, ok := m[a]
-			if ok {
-				j, ok := m[b]
-				if ok {
-					if i > j {
-						valid = false
-					}
-				}
-			}
-		}
-		if !valid {
-
-			ord2 := strings.Split(p, ",")
-			slices.SortFunc(ord2, func(a, b string) int {
-				if rules[a+"|"+b] {
-					return -1
-				}
-				return 0
-			})
-
-			total += utils.ToInt(ord2[len(ord2)/2])
-		}
-	}
-	return total
+	return part1, part2
 }
 
 var inputs = []string{
