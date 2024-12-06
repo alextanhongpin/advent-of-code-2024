@@ -21,25 +21,26 @@ func ExampleDayN() {
 	// part 2: 1770
 }
 
-func parseGrid(input string) (complex128, map[complex128]rune) {
-	grid := make(map[complex128]rune)
-	var start complex128
+func parseGrid(input string) (start complex128, grid map[complex128]rune) {
+	grid = make(map[complex128]rune)
 	for i, row := range strings.Split(input, "\n") {
 		for j, col := range row {
+			pos := complex(float64(j), float64(i))
 			if col == '^' {
-				start = complex(float64(j), float64(i))
-				grid[complex(float64(j), float64(i))] = '.'
+				start = pos
+				grid[pos] = '.' // replace start with empty space
 			} else {
-				grid[complex(float64(j), float64(i))] = col
+				grid[pos] = col
 			}
 		}
 	}
+
 	return start, grid
 }
 
-func getVisited(input string) map[complex128]bool {
+func getVisited(start complex128, grid map[complex128]rune) map[complex128]bool {
 	visit := make(map[complex128]bool)
-	start, grid := parseGrid(input)
+	visit[start] = true
 
 	dir := complex(0, -1)
 	for {
@@ -49,11 +50,14 @@ func getVisited(input string) map[complex128]bool {
 			break
 		}
 		if ch == '#' {
+			// Turn right
 			dir *= complex(0, 1)
 			continue
 		}
-
+		// Move forward
 		start = next
+
+		// Mark as visited
 		visit[next] = true
 	}
 
@@ -74,14 +78,15 @@ func checkDuplicate(start complex128, grid map[complex128]rune) bool {
 		if !ok {
 			break
 		}
+
 		if ch == '#' {
 			dir *= complex(0, 1)
 			continue
 		}
 
 		start = next
-
 		if cache[step{start, dir}] {
+			// Found a loop
 			return true
 		}
 
@@ -92,13 +97,17 @@ func checkDuplicate(start complex128, grid map[complex128]rune) bool {
 }
 
 func part1(input string) int {
-	return len(getVisited(input))
+	start, grid := parseGrid(input)
+	return len(getVisited(start, grid))
 }
 
 func part2(input string) int {
-	var total int
 	start, grid := parseGrid(input)
-	visited := getVisited(input)
+	visited := getVisited(start, grid)
+
+	// For every visited node, try to replace it with a wall and check if it
+	// creates a loop.
+	var total int
 	for k := range visited {
 		gridClone := maps.Clone(grid)
 		gridClone[k] = '#'
