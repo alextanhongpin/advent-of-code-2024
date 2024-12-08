@@ -16,8 +16,8 @@ func ExampleDayN() {
 	// part 1: 14
 	// part 1: 367
 	//
-	// part 2: 0
-	// part 2: 0
+	// part 2: 34
+	// part 2: 1285
 }
 
 func part1(input string) int {
@@ -70,6 +70,8 @@ func part2(input string) int {
 		for _, other := range nodes {
 			if grid[node] == grid[other] && node != other {
 				dist := other - node
+				antinodes[other] = true
+				antinodes[node] = true
 				next := node + 2*dist
 				for {
 					if _, ok := grid[next]; !ok {
@@ -82,9 +84,6 @@ func part2(input string) int {
 		}
 	}
 
-	for _, node := range nodes {
-		antinodes[node] = true
-	}
 	return len(antinodes)
 }
 
