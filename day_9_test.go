@@ -54,28 +54,8 @@ func part1(input string) int {
 	return total
 }
 
-type Block struct {
-	Val  Memory
-	Free int
-	Used Memories
-}
-
-type Memory struct {
-	Val  int
-	Size int
-}
-
-type Memories []Memory
-
-func (m Memories) Size() int {
-	var size int
-	for _, mem := range m {
-		size += mem.Size
-	}
-	return size
-}
-
 func part2(input string) int {
+	// Ensure the input has even length.
 	if len(input)%2 != 0 {
 		input += "0"
 	}
@@ -95,31 +75,44 @@ func part2(input string) int {
 		countByID[id] = block
 	}
 
+	// Loop from last id in descending order.
 	for lastID > -1 {
 		h := slices.Index(blocks, lastID)
 		for i, id := range blocks {
+			// Ignore if the block is already placed.
 			if id != -1 {
 				continue
 			}
+
+			// Can only place the block in front.
 			if i >= h {
 				break
 			}
 
+			// Count free space.
 			var space int
 			j := i
 			for blocks[j] == -1 {
 				space++
 				j++
 			}
+
+			// Check if the block can be placed.
 			limit := countByID[lastID]
-			if space >= limit {
-				for p := range limit {
-					blocks[i+p] = lastID
-					blocks[h+p] = -1
-				}
-				break
+			if space < limit {
+				continue
 			}
+
+			// Move the block to the free space.
+			for p := range limit {
+				blocks[i+p] = lastID
+				blocks[h+p] = -1
+			}
+
+			break
 		}
+
+		// Move to the next block.
 		lastID--
 	}
 
