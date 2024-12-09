@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go-aoc-2025/utils"
+	"slices"
 	"strings"
 )
 
@@ -22,52 +23,61 @@ func ExampleDayN() {
 }
 
 func part1(input string) int {
-	var res []string
-	var id int
-	for i, n := range strings.Split(input, "") {
-		space := i%2 == 1
-		if space {
-			for range utils.ToInt(string(n)) {
-				res = append(res, fmt.Sprint("."))
-			}
-		} else {
-			for range utils.ToInt(string(n)) {
-				res = append(res, fmt.Sprint(id))
-			}
-			id++
+	type Block struct {
+		ID   int
+		Vals []int
+		Free int
+	}
+	if len(input)%2 != 0 {
+		input += "0"
+	}
+
+	var blocks []Block
+	for i := 0; i < len(input); i += 2 {
+		id := i / 2
+		b := Block{
+			ID:   id,
+			Vals: slices.Repeat([]int{id}, utils.ToInt(string(input[i]))),
+			Free: utils.ToInt(string(input[i+1])),
 		}
+		blocks = append(blocks, b)
 	}
 
 	var i int
-	for {
-		if i > len(res)-1 {
-			break
-		}
-		if res[i] == "." {
-			last := len(res) - 1
-			if res[last] != "." {
-				res[i] = res[len(res)-1]
-				res = res[:len(res)-1]
-			}
-		}
-
-		for {
-			last := len(res) - 1
-			if res[last] == "." {
-				res = res[:len(res)-1]
-			} else {
-				break
-			}
-		}
-		i++
-	}
-	var total int
-
-	for i, n := range res {
-		if n == "." {
+	for i < len(blocks) {
+		first := blocks[i]
+		if first.Free == 0 {
+			i++
 			continue
 		}
-		total += i * utils.ToInt(n)
+
+		last := blocks[len(blocks)-1]
+		if len(last.Vals) == 0 {
+			blocks = blocks[:len(blocks)-1]
+			continue
+		}
+
+		if first.ID == last.ID {
+			break
+		}
+
+		val := last.Vals[len(last.Vals)-1]
+		last.Vals = last.Vals[:len(last.Vals)-1]
+		last.Free++
+		first.Vals = append(first.Vals, val)
+		first.Free--
+		blocks[i] = first
+		blocks[len(blocks)-1] = last
+	}
+
+	var total int
+	i = 0
+	for _, block := range blocks {
+		for _, v := range block.Vals {
+			total += v * i
+			i++
+		}
+		i += block.Free
 	}
 
 	return total
