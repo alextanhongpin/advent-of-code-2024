@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"go-aoc-2025/utils"
 	"slices"
-	"strings"
 )
 
 func ExampleDayN() {
@@ -23,61 +22,33 @@ func ExampleDayN() {
 }
 
 func part1(input string) int {
-	type Block struct {
-		ID   int
-		Vals []int
-		Free int
-	}
 	if len(input)%2 != 0 {
 		input += "0"
 	}
 
-	var blocks []Block
+	var blocks []int
 	for i := 0; i < len(input); i += 2 {
 		id := i / 2
-		b := Block{
-			ID:   id,
-			Vals: slices.Repeat([]int{id}, utils.ToInt(string(input[i]))),
-			Free: utils.ToInt(string(input[i+1])),
-		}
-		blocks = append(blocks, b)
+		block := utils.ToInt(string(input[i]))
+		space := utils.ToInt(string(input[i+1]))
+		blocks = append(blocks, slices.Repeat([]int{id}, block)...)
+		blocks = append(blocks, slices.Repeat([]int{-1}, space)...)
 	}
 
 	var i int
 	for i < len(blocks) {
-		first := blocks[i]
-		if first.Free == 0 {
+		b := blocks[i]
+		if b != -1 {
 			i++
 			continue
 		}
-
-		last := blocks[len(blocks)-1]
-		if len(last.Vals) == 0 {
-			blocks = blocks[:len(blocks)-1]
-			continue
-		}
-
-		if first.ID == last.ID {
-			break
-		}
-
-		val := last.Vals[len(last.Vals)-1]
-		last.Vals = last.Vals[:len(last.Vals)-1]
-		last.Free++
-		first.Vals = append(first.Vals, val)
-		first.Free--
-		blocks[i] = first
-		blocks[len(blocks)-1] = last
+		blocks[i] = blocks[len(blocks)-1]
+		blocks = blocks[:len(blocks)-1]
 	}
 
 	var total int
-	i = 0
-	for _, block := range blocks {
-		for _, v := range block.Vals {
-			total += v * i
-			i++
-		}
-		i += block.Free
+	for i, block := range blocks {
+		total += block * i
 	}
 
 	return total
@@ -105,59 +76,59 @@ func (m Memories) Size() int {
 }
 
 func part2(input string) int {
-	var blocks []Block
-	bs := strings.Split(input, "")
-	for i := 0; i < len(bs); i += 2 {
-		id := i / 2
-		block := bs[i]
-
-		var space string
-		if i+1 > len(bs)-1 {
-			space = "0"
-		} else {
-			space = bs[i+1]
-		}
-		b := Block{
-			Val:  Memory{Val: id, Size: utils.ToInt(block)},
-			Free: utils.ToInt(space),
-		}
-		blocks = append(blocks, b)
+	if len(input)%2 != 0 {
+		input += "0"
 	}
 
-	for i := len(blocks) - 1; i > -1; i-- {
-		last := blocks[i]
-		for j := 0; j < i; j++ {
-			curr := blocks[j]
+	var lastID int
+	countByID := make(map[int]int)
+	var blocks []int
+	for i := 0; i < len(input); i += 2 {
+		id := i / 2
+		block := utils.ToInt(string(input[i]))
+		space := utils.ToInt(string(input[i+1]))
 
-			if curr.Free >= last.Val.Size {
-				left := curr.Free - last.Val.Size
-				blocks[j].Free = left
-				blocks[j].Used = append(blocks[j].Used, last.Val)
-				blocks[i].Val = Memory{Val: -1, Size: last.Val.Size}
+		blocks = append(blocks, slices.Repeat([]int{id}, block)...)
+		blocks = append(blocks, slices.Repeat([]int{-1}, space)...)
+
+		lastID = id
+		countByID[id] = block
+	}
+
+	for lastID > -1 {
+		h := slices.Index(blocks, lastID)
+		for i, id := range blocks {
+			if id != -1 {
+				continue
+			}
+			if i >= h {
+				break
+			}
+
+			var space int
+			j := i
+			for blocks[j] == -1 {
+				space++
+				j++
+			}
+			limit := countByID[lastID]
+			if space >= limit {
+				for p := range limit {
+					blocks[i+p] = lastID
+					blocks[h+p] = -1
+				}
 				break
 			}
 		}
+		lastID--
 	}
 
-	var i int
 	var total int
-	for _, b := range blocks {
-		for range b.Val.Size {
-			if b.Val.Val != -1 {
-				total += b.Val.Val * i
-			}
-			i++
+	for i, b := range blocks {
+		if b == -1 {
+			b = 0
 		}
-		for _, mem := range b.Used {
-			for range mem.Size {
-				if mem.Val != -1 {
-					total += mem.Val * i
-				}
-				i++
-			}
-		}
-
-		i += b.Free
+		total += b * i
 	}
 
 	return total
