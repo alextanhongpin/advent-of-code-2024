@@ -31,7 +31,7 @@ func blink(input string, n int) int {
 	for range n {
 		oldStones := maps.Clone(stones)
 		clear(stones)
-		for s, i := range maps.Clone(oldStones) {
+		for s, i := range oldStones {
 			switch {
 			case s == "0":
 				stones["1"] += i
