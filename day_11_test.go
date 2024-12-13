@@ -21,15 +21,18 @@ func ExampleDayN() {
 }
 
 var pos = []complex128{
-	0 - 1i,  // up
-	0 + 1i,  // down
-	-1 + 0i, // left
-	1 + 0i,  // right
+	-1i, // up
+	1i,  // down
+	-1,  // left
+	1,   // right
 }
 
-type Batch struct {
-	flower string
-	pos    []complex128
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+
+	return 0
 }
 
 func part1(input string) int {
@@ -95,6 +98,8 @@ func part2(input string) int {
 		if visited[p] {
 			continue
 		}
+
+		// Flood fill.
 		area := make(map[complex128]bool)
 		next := []complex128{p}
 		for len(next) > 0 {
@@ -112,37 +117,38 @@ func part2(input string) int {
 			}
 		}
 
+		// There are some solutions that suggest the lines are equal to the number
+		// of edges.
+		// But computing them seems to be a bit tricky.
+		// Instead, we just get the perimeter by checking the neighbors.
 		peri := make(map[complex128]bool)
-		for a := range area {
+		for p := range area {
+			visited[p] = true
+
 			for _, d := range pos {
-				if flowers[a+d] != f {
-					peri[a+d/4] = true // Add 0.25 to avoid overlapping.
+				if !area[p+d] {
+					peri[p+d/4] = true
 				}
 			}
 		}
 
-		// Trim perimeter by moving left, right, top and bottom.
+		// For each perimeter, merge the neighbors.
 		checked := make(map[complex128]bool)
-		for k := range peri {
-			if checked[k] {
+		for p := range peri {
+			if checked[p] {
 				continue
 			}
-			checked[k] = true
 
-			for _, p := range pos {
-				next := k + p
-				for peri[next] {
+			for _, d := range pos {
+				next := p + d
+				if area[next] {
 					delete(peri, next)
-					checked[next] = true
-					next += p
+					next += d
 				}
 			}
 		}
 
 		total += len(peri) * len(area)
-		for p := range area {
-			visited[p] = true
-		}
 	}
 
 	return total
