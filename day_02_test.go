@@ -19,8 +19,8 @@ func ExampleDay2() {
 	// part 1: 2
 	// part 1: 686
 	//
-	// part 2: 0
-	// part 2: 0
+	// part 2: 4
+	// part 2: 717
 }
 
 func part1(input string) int {
