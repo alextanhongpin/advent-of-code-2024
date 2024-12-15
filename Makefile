@@ -6,6 +6,6 @@ test:
 
 
 all:
-	for i in {00..13}; do \
+	for i in {01..15}; do \
 		make test day=$$(printf '%02d\n' $$i); \
 	done
