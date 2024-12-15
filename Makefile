@@ -1,11 +1,11 @@
-run:
+main:
 	gotest -v main_test.go
 
-test:
+run:
 	gotest -v day_$(day)_test.go
 
 
 all:
 	for i in {01..15}; do \
-		make test day=$$(printf '%02d\n' $$i); \
+		make run day=$$(printf '%02d\n' $$i); \
 	done

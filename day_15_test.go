@@ -1,8 +1,8 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"log"
 	"strings"
 )
 
@@ -42,234 +42,191 @@ func robot(grid map[complex128]string) complex128 {
 	panic("no robot")
 }
 
-func display(grid map[complex128]string) {
-	for y := range 20 {
-		for x := range 20 {
-			ch := complex(float64(x), float64(y))
-			fmt.Print(grid[ch])
-		}
-		fmt.Println()
-	}
-}
-
 func part1(input string) int {
-	parts := strings.Split(input, "\n\n")
-	grid := make(map[complex128]string)
-	moves := strings.TrimSpace(strings.ReplaceAll(parts[1], "\n", ""))
-
-	for y, row := range strings.Split(parts[0], "\n") {
-		for x, col := range strings.Split(row, "") {
-			p := complex(float64(x), float64(y))
-			grid[p] = col
-		}
-	}
+	grid, moves, robot := parse(input)
 
 	for _, dir := range moves {
 		move := movesByDir[dir]
-
-		curr := robot(grid)
-		next := curr + move
-		switch grid[next] {
-		case "#":
-			// Wall, continue.
-		case ".":
-			// Next is a space, moves robot.
-			grid[curr] = "."
-			grid[next] = "@"
-		case "O":
-			// Next is a box, check for subsequent boxes.
-			for grid[next] == "O" {
+		switch grid[robot+move] {
+		case '#':
+		case '.':
+			robot += move
+		case 'O':
+			next := robot + move
+			for grid[next] == 'O' {
 				next += move
 			}
-			if grid[next] == "#" {
+			if grid[next] == '#' {
 				continue
 			}
-			grid[next] = "O"
-			next = curr + move
-			grid[curr] = "."
-			grid[next] = "@"
-		default:
-			log.Fatal("invalid grid")
+			robot += move
+			grid[next] = 'O'
+			grid[robot] = '.'
 		}
 	}
 
 	var total int
-	for p, b := range grid {
-		if b != "O" {
+	for pos, tile := range grid {
+		if tile != 'O' {
 			continue
 		}
-		x := real(p)
-		y := imag(p)
-		total += int(x) + int(y)*100
+		x, y := int(real(pos)), int(imag(pos))
+		total += x + y*100
 	}
 
 	return total
 }
 
-func part2(input string) int {
+func parse(input string) (grid map[complex128]rune, moves string, robot complex128) {
 	parts := strings.Split(input, "\n\n")
-	grid := make(map[complex128]string)
-	moves := strings.TrimSpace(strings.ReplaceAll(parts[1], "\n", ""))
+	grid = make(map[complex128]rune)
+	var y int
 
-	for y, row := range strings.Split(parts[0], "\n") {
-		for x, col := range strings.Split(row, "") {
-			mx := float64(x) * 2
-			my := float64(y) * 1
-			p := complex(mx, my)
-			switch col {
-			case "#":
-				grid[p] = col
-				grid[p+1] = col
-			case ".":
-				grid[p] = col
-				grid[p+1] = col
-			case "O":
-				grid[p] = "["
-				grid[p+1] = "]"
-			case "@":
-				grid[p] = col
-				grid[p+1] = "."
+	scanner := bufio.NewScanner(strings.NewReader(parts[0]))
+	for scanner.Scan() {
+		text := scanner.Text()
+		for x, ch := range []rune(text) {
+			p := complex(float64(x), float64(y))
+			if ch == '@' {
+				robot = p
+				ch = '.'
 			}
+			grid[p] = ch
 		}
+		y++
 	}
 
-	isBox := func(tile string) bool {
-		return tile == "[" || tile == "]"
+	moves = strings.Join(strings.Split(parts[1], "\n"), "")
+	return
+}
+
+func part2(input string) int {
+	compactGrid, moves, robot := parse(input)
+	robot = complex(real(robot)*2, imag(robot))
+	grid := make(map[complex128]rune)
+	for p, v := range compactGrid {
+		x := real(p) * 2
+		y := imag(p)
+
+		grid[complex(x, y)] = v
+		grid[complex(x+1, y)] = v
+		if v == 'O' {
+			grid[complex(x, y)] = '['
+			grid[complex(x+1, y)] = ']'
+		}
 	}
 
 	for _, dir := range moves {
 		move := movesByDir[dir]
-
-		curr := robot(grid)
-		next := curr + move
-
+		next := robot + move
 		switch tile := grid[next]; tile {
-		case "#":
-			// Wall, continue.
-		case ".":
-			// Next is a space, moves robot.
-			grid[curr] = "."
-			grid[next] = "@"
-		default:
-			switch {
-			case dir == '>':
+		case '#':
+		case '.':
+			robot = next
+		case '[', ']':
+			switch dir {
+			case '<':
 				steps := 0
 				ahead := next
-				for grid[ahead] == "[" {
+				for grid[ahead] == ']' {
 					ahead += 2 * move
 					steps++
 				}
-				if grid[ahead] == "#" {
+				if grid[ahead] == '#' {
 					continue
 				}
-
-				grid[curr] = "."
-				grid[next] = "@"
-				ahead = next + move
+				robot = next
+				grid[robot] = '.'
+				ahead = robot + move
 				for range steps {
-					grid[ahead] = "["
-					grid[ahead+1] = "]"
+					grid[ahead] = ']'
+					grid[ahead-1] = '['
 					ahead += 2 * move
 				}
-			case dir == '<':
+			case '>':
 				steps := 0
 				ahead := next
-				for grid[ahead] == "]" {
+				for grid[ahead] == '[' {
 					ahead += 2 * move
 					steps++
 				}
-				if grid[ahead] == "#" {
+				if grid[ahead] == '#' {
 					continue
 				}
-
-				grid[curr] = "."
-				grid[next] = "@"
-				ahead = next + move
+				robot = next
+				grid[robot] = '.'
+				ahead = robot + move
 				for range steps {
-					grid[ahead] = "]"
-					grid[ahead-1] = "["
+					grid[ahead] = '['
+					grid[ahead+1] = ']'
 					ahead += 2 * move
 				}
-			case (dir == '^' || dir == 'v'):
-				// Collect all the boxes position, then add up or down.
-				boxesBySteps := make(map[int][]complex128)
-				if tile == "[" {
-					boxesBySteps[0] = []complex128{next}
+			default:
+				valid := true
+				var q []complex128
+				if tile == '[' {
+					q = []complex128{next}
 				} else {
-					boxesBySteps[0] = []complex128{next - 1}
+					q = []complex128{next - 1}
 				}
-				var steps int
-				var valid = true
-				for {
-					boxes := boxesBySteps[steps]
-					if len(boxes) == 0 {
-						break
-					}
-					for _, box := range boxes {
-						left := grid[box+move]
-						right := grid[box+move+1]
-						isObstacle := left == "#" || right == "#"
-						if isObstacle {
-							valid = false
-							break
-						}
-						if !(isBox(left) || isBox(right)) {
-							continue
-						}
-						//  []
-						// []
-						//
-						// []
-						// []
-						//
-						// []
-						//  []
 
-						if left == "[" {
-							boxesBySteps[steps+1] = append(boxesBySteps[steps+1], box+move)
-						} else if left == "]" {
-							boxesBySteps[steps+1] = append(boxesBySteps[steps+1], box+move-1)
-						}
-						if right == "[" {
-							boxesBySteps[steps+1] = append(boxesBySteps[steps+1], box+move+1)
-						}
-					}
-					if !valid {
+				var i int
+				for i < len(q) {
+					lhs := q[i] + move
+					rhs := q[i] + move + 1
+					if grid[lhs] == '#' || grid[rhs] == '#' {
+						valid = false
 						break
 					}
-					steps++
+					if grid[lhs] == '[' {
+						q = append(q, lhs)
+					} else if grid[lhs] == ']' {
+						q = append(q, lhs-1)
+					}
+					if grid[rhs] == '[' {
+						q = append(q, rhs)
+					}
+					i++
 				}
 				if !valid {
 					continue
 				}
-
-				for i := steps; i > -1; i-- {
-					for _, box := range boxesBySteps[i] {
-						grid[box] = "."
-						grid[box+1] = "."
-						grid[box+move] = "["
-						grid[box+move+1] = "]"
-					}
+				robot = next
+				grid[robot] = '.'
+				for i := len(q) - 1; i > -1; i-- {
+					pos := q[i]
+					grid[pos] = '.'
+					grid[pos+1] = '.'
+					grid[pos+move] = '['
+					grid[pos+move+1] = ']'
 				}
-
-				grid[curr] = "."
-				grid[next] = "@"
-			default:
-				log.Fatal("what")
 			}
 		}
 	}
 
-	var total int
-	for p, b := range grid {
-		if b != "[" {
-			continue
+	display := false
+	if display {
+		for y := range 10 {
+			for x := range 20 {
+				pos := complex(float64(x), float64(y))
+				if pos == robot {
+					fmt.Print("@")
+					continue
+				}
+				fmt.Print(string(grid[pos]))
+			}
+			fmt.Println()
 		}
-		x := real(p)
-		y := imag(p)
-		total += int(x) + int(y)*100
 	}
 
+	var total int
+	for pos, tile := range grid {
+		if tile != '[' {
+			continue
+		}
+		x, y := int(real(pos)), int(imag(pos))
+		total += x + y*100
+	}
 	return total
 }
 
