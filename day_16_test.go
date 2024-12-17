@@ -26,7 +26,7 @@ func ExampleDayN() {
 	//
 	// part 2: 45
 	// part 2: 64
-	// part 2: 631 // UNSOLVED
+	// part 2: 631
 }
 
 func part1(input string) int {
@@ -49,6 +49,57 @@ func display(grid map[Point]rune) {
 }
 
 func part2(input string) int {
+	grid, start, end := parse(input)
+	sol := solve(grid, start, end)
+
+	last := end
+	// We skip the last one because it can have multiple paths leading to it.
+	end = sol.hist[len(sol.hist)-2]
+	dist := sol.steps() - 1
+
+	visited := make(map[cacheKey]int)
+	var states []*state
+	pq := &PriorityQueue{items: make([]*state, 1)}
+	pq.items[0] = &state{start, utils.Right, 0, []Point{start}, nil}
+	heap.Init(pq)
+	for pq.Len() > 0 {
+		h := heap.Pop(pq).(*state)
+		if h.pos == end {
+			states = append(states, h)
+			continue
+		}
+		key := cacheKey{h.pos, h.dir}
+		if _, ok := visited[key]; !ok {
+			visited[key] = h.score()
+		}
+		if visited[key] < h.score() {
+			continue
+		}
+		visited[key] = h.score()
+		if grid[h.pos] != '.' {
+			continue
+		}
+
+		heap.Push(pq, h.clockwise())
+		heap.Push(pq, h.anticlockwise())
+		heap.Push(pq, h.move())
+	}
+
+	unique := make(map[Point]bool)
+	unique[last] = true
+	for _, s := range states {
+		if s.steps() != dist {
+			continue
+		}
+		for _, p := range s.hist {
+			unique[p] = true
+		}
+	}
+
+	return len(unique)
+}
+
+func part2_old(input string) int {
 	grid, start, end := parse(input)
 	sol := solve(grid, start, end)
 	// Find all junctions first.
@@ -199,15 +250,11 @@ func (s *state) score() int {
 // A PriorityQueue implements heap.Interface and holds Items.
 type PriorityQueue struct {
 	items []*state
-	steps bool
 }
 
 func (pq PriorityQueue) Len() int { return len(pq.items) }
 
 func (pq PriorityQueue) Less(i, j int) bool {
-	if pq.steps {
-		return pq.items[i].steps() < pq.items[j].steps()
-	}
 	// We want Pop to give us the highest, not lowest, priority so we use greater than here.
 	return pq.items[i].score() < pq.items[j].score()
 }
