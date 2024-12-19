@@ -27,49 +27,41 @@ func parse(input string) (stripes []string, towels []string) {
 	return
 }
 
-func solve(stripes, towels []string) []string {
-	var valid []string
-	for _, towel := range towels {
-		q := []string{towel}
+func part1(input string) int {
+	stripes, towels := parse(input)
+	dp := &DP{combs: make(map[string]int), stripes: stripes}
 
-		for len(q) > 0 {
-			t := q[0]
-			q = q[1:]
-
-			if t == "" {
-				valid = append(valid, towel)
-				break
-			}
-			var valid bool
-			for _, s := range stripes {
-				n := strings.TrimPrefix(t, s)
-				if len(n) < len(t) {
-					valid = true
-					q = append([]string{n}, q...)
-				}
-			}
-			if !valid {
-				continue
-			}
+	var count int
+	for _, t := range towels {
+		if dp.comb(t) > 0 {
+			count++
 		}
 	}
 
-	return valid
-}
-
-func part1(input string) int {
-	return len(solve(parse(input)))
+	return count
 }
 
 func part2(input string) int {
 	stripes, towels := parse(input)
-	valid := solve(stripes, towels)
+	dp := &DP{combs: make(map[string]int), stripes: stripes}
 
-	comb := make(map[string]int)
+	var count int
+	for _, t := range towels {
+		count += dp.comb(t)
+	}
 
+	return count
+}
+
+type DP struct {
+	combs   map[string]int
+	stripes []string
+}
+
+func (dp *DP) comb(s string) int {
 	var prod func(string) int
 	prod = func(s string) int {
-		if n, ok := comb[s]; ok {
+		if n, ok := dp.combs[s]; ok {
 			return n
 		}
 		if s == "" {
@@ -77,21 +69,16 @@ func part2(input string) int {
 		}
 
 		var count int
-		for _, stripe := range stripes {
+		for _, stripe := range dp.stripes {
 			if strings.HasPrefix(s, stripe) {
 				count += prod(strings.TrimPrefix(s, stripe))
 			}
 		}
-		comb[s] = count
-
+		dp.combs[s] = count
 		return count
 	}
 
-	var count int
-	for _, v := range valid {
-		count += prod(v)
-	}
-	return count
+	return prod(s)
 }
 
 var inputs = []string{
