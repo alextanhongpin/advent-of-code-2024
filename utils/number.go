@@ -18,3 +18,12 @@ func ToInt(s string) int {
 
 	return n
 }
+
+func ToFloat(s string) float64 {
+	n, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		panic(err)
+	}
+
+	return n
+}

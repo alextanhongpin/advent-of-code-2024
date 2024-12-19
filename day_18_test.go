@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"go-aoc-2025/utils"
-	"slices"
+	"maps"
 	"strings"
 )
 
@@ -23,110 +23,98 @@ func ExampleDayN() {
 }
 
 func part1(input string, byteSize int, end complex128) int {
-	steps, _ := solve(input, byteSize, end)
-	return steps
+	pos := parse(input)
+	grid := makeGrid(end)
+	return solve(pos, grid, byteSize, end)
 }
 
 func part2(input string, byteSize int, end complex128) complex128 {
-	maxRows := len(strings.Split(strings.TrimSpace(input), "\n"))
-	for i := byteSize; i < maxRows; i++ {
-		steps, last := solve(input, i, end)
-		if steps == 0 {
-			return last
-		}
+	pos := parse(input)
+	lo := byteSize
+	hi := len(pos) - 1
+	grid := makeGrid(end)
+
+	fn := func(n int) bool {
+		return solve(pos, maps.Clone(grid), n, end) > 0
 	}
 
-	return 0 + 0i
+	return pos[binarySearch(lo, hi, fn)]
 }
 
-func solve(input string, byteSize int, end complex128) (int, complex128) {
+func parse(input string) []complex128 {
 	rows := strings.Split(input, "\n")
-	grid := make(map[complex128]bool)
-	var last complex128
-	for _, row := range rows {
-		row = strings.TrimSpace(row)
-		if row == "" {
-			continue
-		}
+	pos := make([]complex128, len(rows))
+	for i, row := range rows {
 		a, b, ok := strings.Cut(row, ",")
 		if !ok {
-			panic("invalid: " + row)
+			panic("invalid input: " + row)
 		}
-		x, y := utils.ToInt(a), utils.ToInt(b)
-		p := complex(float64(x), float64(y))
-		if len(grid) == byteSize {
-			break
-		}
-		last = p
-		grid[p] = true
+		x, y := utils.ToFloat(a), utils.ToFloat(b)
+		p := complex(x, y)
+		pos[i] = p
 	}
 
-	maxX := int(real(end))
-	maxY := int(imag(end))
-	for x := range maxX + 1 {
-		grid[complex(float64(x), float64(-1))] = true
-		grid[complex(float64(x), float64(maxY+1))] = true
+	return pos
+}
+
+func makeGrid(end complex128) map[complex128]bool {
+	grid := make(map[complex128]bool)
+	x, y := real(end), imag(end)
+	if x != y {
+		panic("dimension is not equal")
 	}
-	for y := range maxY + 1 {
-		grid[complex(float64(-1), float64(y))] = true
-		grid[complex(float64(maxX+1), float64(y))] = true
+	for i := -1; i < int(x)+1; i++ {
+		r := float64(i)
+		grid[complex(r, -1)] = true
+		grid[complex(r, y+1)] = true
+		grid[complex(-1, r)] = true
+		grid[complex(y+1, r)] = true
 	}
 
-	type state struct {
-		pos   complex128
-		steps []complex128
-	}
-	q := []state{{
-		pos:   complex(0, 0),
-		steps: []complex128{},
-	}}
+	return grid
+}
 
-	visited := make(map[complex128]bool)
+func solve(pos []complex128, grid map[complex128]bool, n int, end complex128) int {
+	for i := range n {
+		grid[pos[i]] = true
+	}
+
+	v := make(map[complex128]bool)
+	q := [][]complex128{{0 + 0i, 0}}
 	for len(q) > 0 {
-		p := q[0]
+		h := q[0]
 		q = q[1:]
 
-		if visited[p.pos] {
+		p, s := h[0], h[1]
+		if grid[p] {
 			continue
 		}
-		visited[p.pos] = true
-
-		if grid[p.pos] {
+		if v[p] {
 			continue
 		}
-
-		p.steps = append(p.steps, p.pos)
-		if p.pos == end {
-			display := false
-			if display {
-				for y := range maxY + 1 {
-					for x := range maxX + 1 {
-						pos := complex(float64(x), float64(y))
-						if slices.Contains(p.steps, pos) {
-							fmt.Print("O")
-						} else if grid[pos] {
-							fmt.Print("#")
-						} else if pos == end {
-							fmt.Print("X")
-						} else {
-							fmt.Print(".")
-						}
-					}
-					fmt.Println()
-				}
-			}
-
-			return len(p.steps) - 1, last
+		v[p] = true
+		if p == end {
+			return int(real(s))
 		}
 		for _, d := range []complex128{1, -1, 1i, -1i} {
-			q = append(q, state{
-				pos:   p.pos + d,
-				steps: slices.Clone(p.steps),
-			})
+			q = append(q, []complex128{p + d, s + 1})
 		}
 	}
 
-	return 0, last
+	return 0
+}
+
+func binarySearch(lo, hi int, fn func(int) bool) int {
+	if lo == hi {
+		return lo
+	}
+
+	mid := (lo+hi)/2 + 1
+	if fn(mid) {
+		return binarySearch(mid, hi, fn)
+	}
+
+	return binarySearch(lo, mid-1, fn)
 }
 
 var inputs = []string{
