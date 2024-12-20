@@ -3,9 +3,6 @@ package main
 import (
 	"container/heap"
 	"fmt"
-	"go-aoc-2025/utils"
-	"log"
-	"maps"
 	"slices"
 	"strings"
 )
@@ -33,21 +30,6 @@ func part1(input string) int {
 	return solve(parse(input)).score()
 }
 
-func display(grid map[Point]rune) {
-	maxX := 0
-	maxY := 0
-	for p := range grid {
-		maxX = max(maxX, p.X)
-		maxY = max(maxY, p.Y)
-	}
-	for y := 0; y <= maxY; y++ {
-		for x := 0; x <= maxX; x++ {
-			fmt.Print(string(grid[MakePoint(x, y)]))
-		}
-		fmt.Println()
-	}
-}
-
 func part2(input string) int {
 	grid, start, end := parse(input)
 	sol := solve(grid, start, end)
@@ -60,7 +42,7 @@ func part2(input string) int {
 	visited := make(map[cacheKey]int)
 	var states []*state
 	pq := &PriorityQueue{items: make([]*state, 1)}
-	pq.items[0] = &state{start, utils.Right, 0, []Point{start}, nil}
+	pq.items[0] = &state{start, 1 + 0i, 0, []Point{start}}
 	heap.Init(pq)
 	for pq.Len() > 0 {
 		h := heap.Pop(pq).(*state)
@@ -76,7 +58,7 @@ func part2(input string) int {
 			continue
 		}
 		visited[key] = h.score()
-		if grid[h.pos] != '.' {
+		if grid[h.pos] {
 			continue
 		}
 
@@ -99,79 +81,29 @@ func part2(input string) int {
 	return len(unique)
 }
 
-func part2_old(input string) int {
-	grid, start, end := parse(input)
-	sol := solve(grid, start, end)
-	// Find all junctions first.
-	var junctions []Point
-	for _, p := range sol.hist {
-		if p == start || p == end {
-			continue
-		}
-		var count int
-		for _, dir := range utils.All {
-			if grid[p.Add(dir)] == '.' {
-				count++
-			}
-		}
-		if count > 2 {
-			junctions = append(junctions, p)
-		}
-	}
+type Point = complex128
 
-	unique := make(map[Point]bool)
-	for i, p := range junctions {
-		for j := i + 1; j < len(junctions); j++ {
-			log.Println(i, "of", len(junctions), j, "of", len(junctions))
-			q := junctions[j]
-			s := slices.Index(sol.hist, p)
-			e := slices.Index(sol.hist, q)
-			d := e - s
-			r := solve(grid, p, q)
-			if r.steps() != d {
-				continue
-			}
-			for _, p := range r.hist {
-				unique[p] = true
-			}
-		}
-	}
-
-	for _, p := range junctions {
-		unique[p] = true
-	}
-	for _, p := range sol.hist {
-		unique[p] = true
-	}
-	for p := range unique {
-		grid[p] = 'o'
-	}
-	display(grid)
-	return len(unique)
-}
-
-func parse(input string) (grid map[Point]rune, start, end Point) {
-	grid = make(map[Point]rune)
+func parse(input string) (grid map[Point]bool, start, end Point) {
+	grid = make(map[Point]bool)
 	for y, row := range strings.Split(input, "\n") {
 		for x, ch := range row {
-			p := MakePoint(x, y)
+			p := complex(float64(x), float64(y))
 			if ch == 'S' {
 				start = p
-				ch = '.'
 			} else if ch == 'E' {
 				end = p
-				ch = '.'
+			} else if ch == '#' {
+				grid[p] = true
 			}
-			grid[p] = ch
 		}
 	}
 	return
 }
 
-func solve(grid map[Point]rune, start, end Point) *state {
+func solve(grid map[Point]bool, start, end Point) *state {
 	visited := make(map[cacheKey]bool)
 	pq := &PriorityQueue{items: make([]*state, 1)}
-	pq.items[0] = &state{start, utils.Right, 0, []Point{start}, nil}
+	pq.items[0] = &state{start, 1 + 0i, 0, []Point{start}}
 	heap.Init(pq)
 	for pq.Len() > 0 {
 		h := heap.Pop(pq).(*state)
@@ -183,7 +115,7 @@ func solve(grid map[Point]rune, start, end Point) *state {
 			continue
 		}
 		visited[key] = true
-		if grid[h.pos] != '.' {
+		if grid[h.pos] {
 			continue
 		}
 
@@ -194,53 +126,47 @@ func solve(grid map[Point]rune, start, end Point) *state {
 	return nil
 }
 
-type Point = utils.Point
-
-var MakePoint = utils.MakePoint
-
 type cacheKey struct {
 	pos, dir Point
 }
 
 type state struct {
-	pos   Point
-	dir   Point
-	rot   int
-	hist  []Point
-	cache map[cacheKey]bool
+	pos  Point
+	dir  Point
+	rot  int
+	hist []Point
 }
 
 func (s *state) clone() *state {
 	return &state{
-		pos:   s.pos,
-		dir:   s.dir,
-		rot:   s.rot,
-		hist:  slices.Clone(s.hist),
-		cache: maps.Clone(s.cache),
+		pos:  s.pos,
+		dir:  s.dir,
+		rot:  s.rot,
+		hist: slices.Clone(s.hist),
 	}
 }
 
 func (s *state) move() *state {
 	n := s.clone()
-	n.pos = n.pos.Add(n.dir)
+	n.pos = n.pos + n.dir
 	n.hist = append(n.hist, n.pos)
 	return n
 }
 func (s *state) anticlockwise() *state {
 	n := s.clone()
 	n.rot++
-	n.dir = n.dir.Rotate('a')
+	n.dir = n.dir * -1i
 	return n
 }
 func (s *state) clockwise() *state {
 	n := s.clone()
 	n.rot++
-	n.dir = n.dir.Rotate('c')
+	n.dir = n.dir * 1i
 	return n
 }
 
 func (s *state) steps() int {
-	return len(s.hist) - 1 // Exclude the start point.
+	return len(s.hist) - 1 // Exclude the start Point.
 }
 
 func (s *state) score() int {
