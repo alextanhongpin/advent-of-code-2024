@@ -6,6 +6,6 @@ run:
 
 
 all:
-	for i in {01..17}; do \
+	for i in {01..21}; do \
 		make run day=$$(printf '%02d\n' $$i); \
 	done
