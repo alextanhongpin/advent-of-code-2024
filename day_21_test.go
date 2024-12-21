@@ -8,6 +8,13 @@ import (
 	"strings"
 )
 
+var dirByRune = map[rune]complex128{
+	'^': -1i,
+	'v': 1i,
+	'<': -1,
+	'>': 1,
+}
+
 // Just using manhattan distance to find the shortest path between two points doesn't work.
 func ExampleDayN() {
 	fmt.Println("part 1:", part1(inputs[0]))
@@ -33,23 +40,24 @@ func part2(input string) int {
 }
 
 func solve(input string, depth int) int {
-	num := newGrid(numeric)
-	dir := newGrid(directional)
+	num := newKeypad(numeric)
+	dir := newKeypad(directional)
 
 	var total int
 	for _, code := range strings.Split(input, "\n") {
-		n, err := strconv.Atoi(code[:len(code)-1])
+		a, err := strconv.Atoi(code[:len(code)-1])
 		if err != nil {
 			panic(err)
 		}
-		total += n * dir.Min(num.Solve(code), depth)
+		b := dir.Min(num.Solve(code), depth)
+		total += a * b
 	}
 
 	return total
 }
 
-func newGrid(input string) *Grid {
-	data := make(map[complex128]rune)
+func newKeypad(input string) *Keypad {
+	keys := make(map[complex128]rune)
 	for y, row := range strings.Split(input, "\n") {
 		for x, col := range []rune(row) {
 			p := complex(float64(x), float64(y))
@@ -57,107 +65,89 @@ func newGrid(input string) *Grid {
 				continue
 			}
 
-			data[p] = col
+			keys[p] = col
 		}
 	}
 
-	return &Grid{
-		data:  data,
+	return &Keypad{
+		keys:  keys,
 		cache: make(map[string]int),
 	}
 }
 
-type Grid struct {
-	data  map[complex128]rune
+type Keypad struct {
+	keys  map[complex128]rune
 	cache map[string]int
 }
 
-var dirByRune = map[rune]complex128{
-	'^': -1i,
-	'v': 1i,
-	'<': -1,
-	'>': 1,
-}
-
-func (g *Grid) Pos(r rune) complex128 {
-	for p, v := range g.data {
+func (k *Keypad) GetPos(r rune) complex128 {
+	for p, v := range k.keys {
 		if v == r {
 			return p
 		}
 	}
-	panic("not found: " + string(r))
+
+	panic("key not found: " + string(r))
 }
 
-func (g *Grid) Min(codes []string, depth int) int {
-	length := math.MaxInt
+func (k *Keypad) Min(codes []string, depth int) int {
+	dist := math.MaxInt
 	for _, code := range codes {
-		length = min(length, g.expand(code, depth))
+		dist = min(dist, k.expand(code, depth))
 	}
-	return length
+
+	return dist
 }
 
-func (g *Grid) expand(code string, depth int) int {
+func (k *Keypad) expand(path string, depth int) int {
 	if depth == 0 {
-		return len(code)
+		return len(path)
 	}
 
 	// Always start with the "A" key.
-	code = "A" + code
-	key := fmt.Sprintf("%d:%s", depth, code)
-	if n, ok := g.cache[key]; ok {
+	path = "A" + path
+	key := fmt.Sprintf("%d:%s", depth, path)
+	if n, ok := k.cache[key]; ok {
 		return n
 	}
 
-	var length int
-	codes := []rune(code)
-	for i, r := range codes[1:] {
-		prev := g.Pos(codes[i])
-		curr := g.Pos(r)
+	var dist int
+	chars := []rune(path)
+	for i, r := range chars[1:] {
+		prev := k.GetPos(chars[i])
+		curr := k.GetPos(r)
 
-		// There can be multiple paths to the next key, so we need to find the shortest one.
-		comb := g.Shortest(prev, curr)
-		short := math.MaxInt
-		for _, c := range comb {
-			short = min(short, g.expand(c, depth-1))
+		steps := math.MaxInt
+		paths := k.ShortestPaths(prev, curr)
+		for _, p := range paths {
+			steps = min(steps, k.expand(p, depth-1))
 		}
-		length += short
+		dist += steps
 	}
 
-	g.cache[key] = length
+	k.cache[key] = dist
 
-	return length
+	return dist
 }
 
-func (g *Grid) Solve(code string) []string {
-	aCode := "A" + code
-	var result []string
-	codes := []rune(aCode)
-	for i, r := range codes[1:] {
-		from, to := g.Pos(codes[i]), g.Pos(r)
-		comb := g.Shortest(from, to)
-		if len(result) == 0 {
-			for _, c := range comb {
-				result = append(result, c)
-			}
-		} else {
-			var tmp []string
-			for _, r := range result {
-				for _, c := range comb {
-					tmp = append(tmp, r+c)
-				}
-			}
-			result = tmp
-		}
+func (k *Keypad) Solve(path string) []string {
+	chars := []rune("A" + path)
+	paths := make([][]string, len(chars)-1)
+	for i, r := range chars[1:] {
+		prev := k.GetPos(chars[i])
+		next := k.GetPos(r)
+		paths[i] = k.ShortestPaths(prev, next)
 	}
 
-	return result
+	return cartesianProduct(paths...)
 }
 
-func (g *Grid) Shortest(start, end complex128) []string {
+func (k *Keypad) ShortestPaths(start, end complex128) []string {
 	type Path struct {
 		pos  complex128
 		hist []rune
 	}
+
 	var res []string
 	visited := make(map[complex128]int)
 	q := []Path{{pos: start}}
@@ -165,7 +155,7 @@ func (g *Grid) Shortest(start, end complex128) []string {
 		s := q[0]
 		q = q[1:]
 
-		if _, ok := g.data[s.pos]; !ok {
+		if _, ok := k.keys[s.pos]; !ok {
 			continue
 		}
 		if n, ok := visited[s.pos]; !ok {
@@ -179,11 +169,33 @@ func (g *Grid) Shortest(start, end complex128) []string {
 			continue
 		}
 		for d, r := range dirByRune {
-			q = append(q, Path{pos: s.pos + r, hist: append(slices.Clone(s.hist), d)})
+			q = append(q, Path{
+				pos: s.pos + r,
+				// NOTE: We need to clone the slice here, otherwise the slice will be
+				// modified in the next iteration.
+				hist: append(slices.Clone(s.hist), d),
+			})
 		}
 	}
 
 	return res
+}
+
+func cartesianProduct(vs ...[]string) []string {
+	switch len(vs) {
+	case 0:
+		return nil
+	case 1:
+		return vs[0]
+	default:
+		var result []string
+		for _, v := range vs[0] {
+			for _, u := range cartesianProduct(vs[1:]...) {
+				result = append(result, v+u)
+			}
+		}
+		return result
+	}
 }
 
 var inputs = []string{
