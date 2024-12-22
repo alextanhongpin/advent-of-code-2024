@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"go-aoc-2025/utils"
+	"maps"
+	"slices"
 	"strings"
 )
 
@@ -18,7 +20,7 @@ func ExampleDayN() {
 	// part 1: 20071921341
 	//
 	// part 2: 23
-	// part 2: 3089
+	// part 2: 2242
 }
 
 func part1(input string) int {
@@ -35,51 +37,41 @@ func part1(input string) int {
 }
 
 func part2(input string) int {
-	type seq struct {
-		a, b, c, d int
-	}
-
 	rows := strings.Split(input, "\n")
-	seqs := make([]map[seq]int, len(rows))
+	res := make(map[[4]int]int)
 
-	const N = 5
-	mod := func(i, j int) int {
-		i = (i % N) + j
-		i += N
-		i %= N
-		return i
-	}
-
-	for r, row := range rows {
-		n := make([]int, N)
-		d := make([]int, N)
-		m := make(map[seq]int)
+	for _, row := range rows {
+		var n, d []int
+		m := make(map[[4]int]int)
 		secret := utils.ToInt(row)
-		n[mod(0, -1)] = secret % 10
-		for i := range 2000 {
+		n = append(n, secret%10)
+		d = append(d, 0)
+		for range 2000 {
 			secret = random(secret)
-			n[mod(i, 0)] = secret % 10
-			d[mod(i, 0)] = n[mod(i, 0)] - n[mod(i, -1)]
-			w, x, y, z := d[mod(i, -3)], d[mod(i, -2)], d[mod(i, -1)], d[mod(i, 0)]
-			m[seq{w, x, y, z}] = max(m[seq{w, x, y, z}], n[mod(i, 0)])
+			n = append(n, secret%10)
+			d = append(d, n[len(n)-1]-n[len(n)-2])
+
+			if len(n) < 4 {
+				continue
+			}
+			// Prune.
+			if len(n) != 4 {
+				n = n[1:]
+				d = d[1:]
+			}
+			// Convert slice to array.
+			// Array can be used as map key.
+			k := ([4]int)(d)
+			if _, ok := m[k]; !ok {
+				m[k] = n[len(n)-1]
+			}
 		}
-
-		seqs[r] = m
-	}
-
-	res := make(map[seq]int)
-	for _, m := range seqs {
 		for k, v := range m {
 			res[k] += v
 		}
 	}
 
-	maxBananas := 0
-	for _, v := range res {
-		maxBananas = max(maxBananas, v)
-	}
-
-	return maxBananas
+	return slices.Max(slices.Collect(maps.Values(res)))
 }
 
 func random(secret int) int {
